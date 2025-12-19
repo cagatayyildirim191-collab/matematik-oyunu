@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Akıllı Matematik Yardımcısı</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, Helvetica, sans-serif;
+      background: #eef2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    body.dark {
+      background: #121212;
+      color: #fff;
+    }
+    .app {
+      width: 100%;
+      max-width: 420px;
+      background: #ffffff;
+      border-radius: 18px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+      padding: 14px;
+      animation: fadeIn 0.6s ease;
+    }
+    body.dark .app { 
+      background: #1e1e1e; 
+    }
+
+    h1 { text-align: center; font-size: 20px; margin-bottom: 8px; }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+    .tabs button {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 10px;
+      background: #3f51b5;
+      color: #fff;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    textarea, input {
+      width: 100%;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      padding: 10px;
+      font-size: 16px;
+      box-sizing: border-box;
+      margin-bottom: 8px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 12px;
+      background: #4caf50;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .result {
+      margin-top: 10px;
+      padding: 10px;
+      background: #f3f3f3;
+      border-radius: 10px;
+      min-height: 60px;
+      font-size: 14px;
+    }
+    body.dark .result { background: #2a2a2a; }
+
+    .calc-grid {
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 6px;
+    }
+    .calc-grid button {
+      padding: 14px;
+      font-size: 16px;
+      border: none;
+      border-radius: 10px;
+      background: #e0e0e0;
+      cursor: pointer;
+    }
+
+    .toggle {
+      margin-top: 6px;
+      font-size: 13px;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .credit {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 12px;
+      opacity: 0.6;
+    }
+  </style>
+
+  <link rel="icon" type="image/png" href="favicon.png">
+</head>
+
+<body>
+
+<div class="app">
+  <h1>📐 Akıllı Matematik Yardımcısı</h1>
+
+  <!-- BUTONLAR -->
+  <div class="tabs">
+    <button onclick="showTab('solver')">Soru Çöz</button>
+    <button onclick="showTab('calc')">Hesap Mak.</button>
+    <button onclick="showTab('game')">🎮 Matematik Oyunu</button>
+  </div>
+
+  <!-- SORU ÇÖZ -->
+  <div id="solver">
+    <textarea id="question" placeholder="Örnek: 2x + 4 = 10"></textarea>
+    <button class="btn" onclick="solve()">Çöz</button>
+    <div class="result" id="result">Sonuç burada...</div>
+  </div>
+
+  <!-- HESAP MAKİNESİ -->
+  <div id="calc" style="display:none">
+    <input id="calcInput" placeholder="0" />
+    <div class="calc-grid">
+      <button onclick="add('7')">7</button>
+      <button onclick="add('8')">8</button>
+      <button onclick="add('9')">9</button>
+      <button onclick="add('/')">/</button>
+
+      <button onclick="add('4')">4</button>
+      <button onclick="add('5')">5</button>
+      <button onclick="add('6')">6</button>
+      <button onclick="add('*')">*</button>
+
+      <button onclick="add('1')">1</button>
+      <button onclick="add('2')">2</button>
+      <button onclick="add('3')">3</button>
+      <button onclick="add('-')">-</button>
+
+      <button onclick="add('0')">0</button>
+      <button onclick="add('.')">.</button>
+      <button onclick="calcRes()">=</button>
+      <button onclick="add('+')">+</button>
+
+      <button onclick="clearCalc()" style="grid-column: span 4">C</button>
+    </div>
+  </div>
+
+  <!-- MATEMATİK OYUNU -->
+  <div id="game" style="display:none">
+    <h3 style="text-align:center">🧠 Hızlı Matematik</h3>
+
+    <div class="result" id="gameQuestion">Soru</div>
+    <input id="gameAnswer" type="number" placeholder="Cevabın">
+
+    <button class="btn" onclick="checkAnswer()">Cevapla</button>
+
+    <div class="result" id="gameInfo">
+      Puan: <b><span id="score">0</span></b>
+    </div>
+  </div>
+
+  <div class="toggle" onclick="toggleDark()">🌙 Karanlık Mod</div>
+  <div class="credit">Yapımcı: <b>Çağatay Yıldırım</b></div>
+</div>
+
+<script>
+let num1, num2, correct;
+let score = 0, combo = 0, level = 1;
+let total = 0, correctCount = 0, wrongCount = 0, bestCombo = 0;
+let time = 60, timer;
+
+/* MOTİVASYON */
+const goodMessages = [
+  "🔥 EFSANE!",
+  "💪 Süpersin!",
+  "🚀 Uçuyorsun!",
+  "🧠 Beyin full!",
+  "😎 Matematik kralı!",
+  "🏆 Devam et!"
+];
+const badMessages = [
+  "🙂 Sorun değil!",
+  "💡 Devam!",
+  "🔥 Vazgeçmek yok!"
+];
+
+/* SES */
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+function beep(freq){
+  const o = ctx.createOscillator();
+  const g = ctx.createGain();
+  o.connect(g); g.connect(ctx.destination);
+  o.frequency.value = freq;
+  o.start();
+  g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+}
+
+/* TAB */
+function showTab(tab){
+  ['solver','calc','game'].forEach(id=>{
+    document.getElementById(id).style.display='none';
+  });
+  document.getElementById(tab).style.display='block';
+
+  if(tab==='game') startGame();
+}
+
+/* OYUN BAŞLAT */
+function startGame(){
+  score=0; combo=0; level=1;
+  total=0; correctCount=0; wrongCount=0; bestCombo=0;
+  time=60;
+  updateInfo();
+  clearInterval(timer);
+  timer = setInterval(()=>{
+    time--;
+    updateInfo();
+    if(time<=0){
+      clearInterval(timer);
+      gameQuestion.innerHTML="⏱️ Süre Bitti!";
+      gameInfo.innerHTML=`
+        ⭐ Skor: ${score}<br>
+        🎯 Doğru: ${correctCount}<br>
+        ❌ Yanlış: ${wrongCount}<br>
+        🔥 En iyi combo: ${bestCombo}
+      `;
+    }
+  },1000);
+  newQuestion();
+}
+
+/* SORU */
+function newQuestion(){
+  total++;
+  const type = Math.floor(Math.random()*9);
+  let q="";
+
+  switch(type){
+    case 0: num1=r(10,50); num2=r(10,50); correct=num1+num2; q=`${num1}+${num2}`; break;
+    case 1: num1=r(20,70); num2=r(1,20); correct=num1-num2; q=`${num1}-${num2}`; break;
+    case 2: num1=r(2,12); num2=r(2,12); correct=num1*num2; q=`${num1}×${num2}`; break;
+    case 3: num2=r(2,10); correct=r(2,10); num1=num2*correct; q=`${num1}÷${num2}`; break;
+    case 4: num1=r(2,5); num2=r(2,3); correct=num1**num2; q=`${num1}<sup>${num2}</sup>`; break;
+    case 5: correct=r(2,12); num1=correct*correct; q=`√${num1}`; break;
+    case 6: num1=r(10,99); num2=r(10,99); correct=num1>num2?1:2;
+            q=`Hangisi büyük?<br>1️⃣ ${num1} 2️⃣ ${num2}`; break;
+    case 7: num1=r(10,30); num2=r(20,50); correct=num2-num1; q=`${num1}+?=${num2}`; break;
+    case 8: num1=r(1,5); num2=r(1,5); let n3=r(1,5);
+            correct=num1+num2*n3; q=`${num1}+${num2}×${n3}`; break;
+  }
+
+  gameQuestion.innerHTML=`❓ <b>${q}</b>`;
+  gameAnswer.value="";
+}
+
+/* CEVAP */
+function checkAnswer(){
+  if(time<=0) return;
+
+  const user = Number(gameAnswer.value);
+
+  if(user===correct){
+    beep(700);
+    score++; correctCount++; combo++;
+    bestCombo=Math.max(bestCombo,combo);
+    if(score%5===0) level++;
+    gameInfo.innerHTML=`✅ ${rnd(goodMessages)}<br>🔥 Combo: ${combo}`;
+    newQuestion();
+  }else{
+    beep(200);
+    wrongCount++; combo=0;
+    gameInfo.innerHTML=`❌ Doğru: ${correct}<br>${rnd(badMessages)}`;
+    setTimeout(newQuestion,800);
+  }
+  updateInfo();
+}
+
+/* BİLGİ */
+function updateInfo(){
+  scoreEl.innerText=score;
+  gameInfo.innerHTML+=`<br>⭐ Level: ${level} ⏱️ ${time}s`;
+}
+
+/* YARDIMCI */
+function r(a,b){ return Math.floor(Math.random()*(b-a+1))+a; }
+function rnd(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* DİĞER */
+function add(v){ calcInput.value+=v; }
+function clearCalc(){ calcInput.value=''; }
+function calcRes(){ try{ calcInput.value=eval(calcInput.value); }catch{ calcInput.value='Hata'; } }
+function solve(){ try{ result.innerHTML='Sonuç: '+eval(question.value); }catch{ result.innerHTML='Hatalı'; } }
+function toggleDark(){ document.body.classList.toggle('dark'); }
+</script>
+
+
+
+
+
+</body>
+</html>
